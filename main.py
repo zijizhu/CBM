@@ -55,19 +55,17 @@ if __name__ == '__main__':
     for i in range(num_batches):
         batch_concepts = raw_concepts[i * batch_size: (i + 1) * batch_size]
         batch_concept_emb = clip.tokenize([prompt_prefix + attr for attr in batch_concepts])
-        if args.device == 'cuda':
-            batch_concept_emb.cuda()
-        full_concept_emb += [emb.detach().cpu() for emb in embedder.encode_text(batch_concept_emb)]
-    
-    full_concept_emb = torch.stack(full_concept_emb).float()
-    full_concept_emb = full_concept_emb / full_concept_emb.norm(dim=-1, keepdim=True)   # Matrix T
+        print(batch_concept_emb.size())
+        full_concept_emb.append(embedder.encode_text(batch_concept_emb).detach().cpu())
 
-    print ("Number of concepts: ", args.num_concepts)
+    full_concept_emb = torch.concat(full_concept_emb).float()
+    full_concept_emb = full_concept_emb / full_concept_emb.norm(dim=-1, keepdim=True)   # Matrix T, Tensor[N, D]
+
 
     # If not using the full matrix T
+    
     if args.num_concepts:
-        # Use linear method to cluster features
-
+        print ("Number of concepts: ", args.num_concepts)
         output_dim = 200
 
         img_dataset = CUBDataset('data', 'train')

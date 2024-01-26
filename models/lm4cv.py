@@ -2,9 +2,21 @@ import torch
 from torch import nn
 
 
-def mahalanobis_distance(x, mu, sigma_inv):
-    x = x - mu.unsqueeze(0)
-    return torch.diag(x @ sigma_inv @ x.T).mean()
+def mean_mahalanobis_distance(vecs: torch.Tensor, distribution: torch.Tensor):
+    '''Computes the mean of mahalanobis distance from a set of vectors to the distribution.
+    
+    Args:
+        vec (Tensor[M, D]): a set of vector of length D.
+        distribution (Tensor[N, D]) a matrix of N vectors of length D
+    
+    Returns:
+        Tensor[]: a scaler tensor, which is the mahalanobis distance from vec to the distribution.
+    '''
+
+    mu = torch.mean(distribution, dim=0)
+    sigma_inv = torch.linalg.inv(torch.cov(distribution.T))
+    vecs = vecs - mu.unsqueeze(0)
+    return torch.diag(vecs @ sigma_inv @ vecs.T).mean()
 
 
 class Stage1Criterion(nn.Module):
@@ -23,9 +35,9 @@ class Stage1Criterion(nn.Module):
         device = outputs.device
         mu = torch.mean(full_concept_emb, dim=0).to(device)
         sigma_inv = torch.linalg.inv(torch.cov(full_concept_emb.T)).to(device)
-        mean_distance = torch.mean([mahalanobis_distance(embed, mu, sigma_inv) for embed in full_concept_emb]).to(device)
+        mean_distance = torch.mean([mean_mahalanobis_distance(embed, mu, sigma_inv) for embed in full_concept_emb]).to(device)
 
-        mahalanobis_loss = (mahalanobis_distance(weights / weights_norm, mu, sigma_inv) - mean_distance) / (mean_distance ** 3)
+        mahalanobis_loss = (mean_mahalanobis_distance(weights / weights_norm, mu, sigma_inv) - mean_distance) / (mean_distance ** 3)
 
         return xe_loss + mahalanobis_loss
 
