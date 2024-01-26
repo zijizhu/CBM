@@ -68,10 +68,6 @@ if __name__ == '__main__':
     if args.num_concepts:
         # Use linear method to cluster features
 
-        mu = torch.mean(full_concept_emb, dim=0)
-        sigma_inv = torch.tensor(np.linalg.inv(torch.cov(full_concept_emb.T)))
-        mean_distance = np.mean([mahalanobis_distance(embed, mu, sigma_inv) for embed in full_concept_emb])
-
         output_dim = 200
 
         img_dataset = CUBDataset('data', 'train')
