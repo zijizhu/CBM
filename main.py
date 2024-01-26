@@ -5,11 +5,10 @@ import argparse
 import numpy as np
 import pandas as pd
 from torch import nn
+from tqdm import tqdm
+from torch.utils.data import DataLoader
 
-
-def mahalanobis_distance(x, mu, sigma_inv):
-    x = x - mu.unsqueeze(0)
-    return torch.diag(x @ sigma_inv @ x.T).mean()
+from datasets.cub_dataset import CUBDataset
 
 
 if __name__ == '__main__':
@@ -19,8 +18,9 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', default=4096, type=int)
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--epochs', default=5000, type=int)
-    parser.add_argument('--model-type', default='clip', choices=['clip', 'open-clip'], type=str)
-    parser.add_argument('--model-variant', default='ViT-B/32', type=str)
+    parser.add_argument('--embedder-type', default='clip', choices=['clip', 'open-clip'], type=str)
+    parser.add_argument('--embedder-variant', default='ViT-B/32', type=str)
+    parser.add_argument('--img-emb-dir', default=None, type=str)
 
     parser.add_argument('--num-concepts', default=None, type=int)
 
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     
     # Get clip model
     if args.model_type == 'clip':
-        model, preprocess = clip.load(args.model_variant)
+        embedder, preprocess = clip.load(args.model_variant)
     elif args.model_type == 'open_clip':
         raise NotImplementedError
     else:
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         batch_concept_emb = clip.tokenize([prompt_prefix + attr for attr in batch_concepts])
         if args.device == 'cuda':
             batch_concept_emb.cuda()
-        full_concept_emb += [emb.detach().cpu() for emb in model.encode_text(batch_concept_emb)]
+        full_concept_emb += [emb.detach().cpu() for emb in embedder.encode_text(batch_concept_emb)]
     
     full_concept_emb = torch.stack(full_concept_emb).float()
     full_concept_emb = full_concept_emb / full_concept_emb.norm(dim=-1, keepdim=True)   # Matrix T
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     print ("Number of concepts: ", args.num_concepts)
 
     # If not using the full matrix T
-    if args.num_concepts < 1000:
+    if args.num_concepts:
         # Use linear method to cluster features
 
         mu = torch.mean(full_concept_emb, dim=0)
@@ -74,9 +74,30 @@ if __name__ == '__main__':
 
         output_dim = 200
 
+        img_dataset = CUBDataset('data', 'train')
+        img_dataloader = DataLoader(img_dataset, 256)
+
+        print('Encode images...')
+        all_imgs_encoded = []
+        with torch.no_grad():
+            for i, batch in tqdm(enumerate(img_dataloader), total=len(img_dataloader)):
+                imgs, targets = batch
+                imgs = imgs.to(args.device)
+                targets = targets.to(args.device)
+                imgs_encoded = embedder.encode_image(imgs)
+                imgs_encoded /= torch.linalg.norm(imgs_encoded, dim=-1, keepdim=True)
+                all_imgs_encoded.append(imgs_encoded.to('cpu'))
+        all_imgs_encoded = torch.cat(all_imgs_encoded).numpy()
+        np.save('data/CUB_200_2011/images_encoded.npy', all_imgs_encoded)
+
         # output_dim = 200
         model = nn.Sequential(nn.Linear(full_concept_emb.shape[-1], args.num_concepts, bias=False),
                               nn.Linear(args.num_concepts, output_dim))
+        
+        
+        
+    else:
+        raise NotImplementedError
 
     
     
