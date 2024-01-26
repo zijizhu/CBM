@@ -22,10 +22,11 @@ if __name__ == '__main__':
     parser.add_argument('--model-type', default='clip', choices=['clip', 'open-clip'], type=str)
     parser.add_argument('--model-variant', default='ViT-B/32', type=str)
 
-    parser.add_argument('--num-concepts', default=200, type=int, choices=[32, 200, 400])
+    parser.add_argument('--num-concepts', default=None, type=int)
 
     args = parser.parse_args()
     print(args)
+
 
     # Set seeds
     torch.manual_seed(args.seed)
@@ -43,24 +44,23 @@ if __name__ == '__main__':
         raise NotImplementedError
     
     # 
-    attributes = open("data/LM4CV/CUB_200_2011/cub_attributes.txt", 'r').read().strip().split("\n")
+    raw_concepts = open("data/LM4CV/CUB_200_2011/cub_attributes.txt", 'r').read().strip().split("\n")
     # print(len(attributes))
 
-    attr_emb = []
+    full_concept_emb = []   # Matrix T
     batch_size = 32
 
     prompt_prefix = 'The bird has '
-    for i in range((len(attributes) // batch_size) + 1):
-        batch_attr = attributes[i * batch_size: (i + 1) * batch_size]
-        batch_attr_emb = clip.tokenize([prompt_prefix + attr for attr in batch_attr])
-        print(batch_attr_emb.size())
-        print(model.encode_text(batch_attr_emb).size(), model.encode_text(batch_attr_emb).dtype)
+    num_batches = len(raw_concepts) // batch_size + 1
+    for i in range(num_batches):
+        batch_concepts = raw_concepts[i * batch_size: (i + 1) * batch_size]
+        batch_concept_emb = clip.tokenize([prompt_prefix + attr for attr in batch_concepts])
         if args.device == 'cuda':
-            batch_attr_emb.cuda()
-        attr_emb += [emb.detach().cpu() for emb in model.encode_text(batch_attr_emb)]
+            batch_concept_emb.cuda()
+        full_concept_emb += [emb.detach().cpu() for emb in model.encode_text(batch_concept_emb)]
     
-    attr_emb = torch.stack(attr_emb).float()
-    attr_emb = attr_emb / attr_emb.norm(dim=-1, keepdim=True)   # Matrix T
+    full_concept_emb = torch.stack(full_concept_emb).float()
+    full_concept_emb = full_concept_emb / full_concept_emb.norm(dim=-1, keepdim=True)   # Matrix T
 
     print ("Number of concepts: ", args.num_concepts)
 
@@ -68,18 +68,14 @@ if __name__ == '__main__':
     if args.num_concepts < 1000:
         # Use linear method to cluster features
 
-        mu = torch.mean(attr_emb, dim=0)
-        sigma_inv = torch.tensor(np.linalg.inv(torch.cov(attr_emb.T)))
-        configs = {
-            'mu': mu,
-            'sigma_inv': sigma_inv,
-            'mean_distance': np.mean([mahalanobis_distance(embed, mu, sigma_inv) for embed in attr_emb])
-        }
+        mu = torch.mean(full_concept_emb, dim=0)
+        sigma_inv = torch.tensor(np.linalg.inv(torch.cov(full_concept_emb.T)))
+        mean_distance = np.mean([mahalanobis_distance(embed, mu, sigma_inv) for embed in full_concept_emb])
 
-        output_dim = len(np.unique(get_labels('cub')[0]))
+        output_dim = 200
 
         # output_dim = 200
-        model = nn.Sequential(nn.Linear(attr_emb.shape[-1], args.num_concepts, bias=False),
+        model = nn.Sequential(nn.Linear(full_concept_emb.shape[-1], args.num_concepts, bias=False),
                               nn.Linear(args.num_concepts, output_dim))
 
     
