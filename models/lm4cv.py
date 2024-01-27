@@ -2,8 +2,9 @@ import torch
 from torch import nn
 
 
-def mean_mahalanobis_distance(vecs: torch.Tensor, distribution: torch.Tensor):
-    '''Computes the mean of mahalanobis distance from a set of vectors to the distribution.
+def _mean_squared_mahalanobis(vecs: torch.Tensor, distribution: torch.Tensor):
+    '''Computes the mean of squared mahalanobis distances from a vector or a set of vectors to the distribution.
+    Implementation from https://github.com/wangyu-ustc/LM4CV/blob/main/utils/train_utils.py#L263
     
     Args:
         vec (Tensor[M, D]): a set of vector of length D.
@@ -20,26 +21,30 @@ def mean_mahalanobis_distance(vecs: torch.Tensor, distribution: torch.Tensor):
 
 
 class Stage1Criterion(nn.Module):
-    def __init__(self, regularization=True) -> None:
+    def __init__(self, regularization=True, division_power=3) -> None:
         super().__init__()
         self.xe = nn.CrossEntropyLoss()
         self.regularization = regularization
+        self.division_power = division_power
     
     def forward(self, outputs: torch.Tensor, targets, weights, full_concept_emb):
         xe_loss = self.xe(outputs, targets)
         if not self.regularization:
             return xe_loss
 
+        # Original implementation from https://github.com/wangyu-ustc/LM4CV/blob/main/utils/train_utils.py#L208
+        # which is different to the one described in the paper.
         weights_norm = torch.linalg.norm(weights, dim=-1, keepdim=True)
 
-        device = outputs.device
-        mu = torch.mean(full_concept_emb, dim=0).to(device)
-        sigma_inv = torch.linalg.inv(torch.cov(full_concept_emb.T)).to(device)
-        mean_distance = torch.mean([mean_mahalanobis_distance(embed, mu, sigma_inv) for embed in full_concept_emb]).to(device)
+        mu = torch.mean(full_concept_emb, dim=0)
+        sigma_inv = torch.inverse(torch.cov(full_concept_emb.T))
+        mean_distance = torch.stack([_mean_squared_mahalanobis(embed, mu, sigma_inv)
+                                     for embed
+                                     in full_concept_emb]).mean().to(outputs.device)
 
-        mahalanobis_loss = (mean_mahalanobis_distance(weights / weights_norm, mu, sigma_inv) - mean_distance) / (mean_distance ** 3)
+        mahalanobis_loss = _mean_squared_mahalanobis(weights / weights_norm, mu, sigma_inv) 
 
-        return xe_loss + mahalanobis_loss
+        return xe_loss + (mahalanobis_loss - mean_distance) / (mean_distance ** self.division_power)
 
 
 class ImageEncoder(nn.Module):
