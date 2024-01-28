@@ -7,9 +7,9 @@ from torch import nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
-from models.lm4cv import Stage1Criterion
 from datasets.cub_dataset import CUBDataset
 from engine import train_one_epoch, evaluate
+from models.lm4cv import Stage1Criterion, TopConceptSearcher
 
 
 if __name__ == '__main__':
@@ -66,6 +66,10 @@ if __name__ == '__main__':
     full_concept_emb = torch.concat(full_concept_emb).float()
     full_concept_emb = full_concept_emb / full_concept_emb.norm(dim=-1, keepdim=True)   # Matrix T, Tensor[N, D]
 
+    train_img_dataset = CUBDataset('data', 'train')
+    train_img_dataloader = DataLoader(train_img_dataset, 256)
+    test_img_dataset = CUBDataset('data', 'test')
+    test_img_dataloader = DataLoader(test_img_dataset, 256)
 
     # If not using the full matrix T
     if not args.num_concepts:
@@ -73,10 +77,6 @@ if __name__ == '__main__':
     print ("Number of concepts to search for: ", args.num_concepts)
     output_dim = 200
 
-    train_img_dataset = CUBDataset('data', 'train')
-    train_img_dataloader = DataLoader(train_img_dataset, 256)
-    test_img_dataset = CUBDataset('data', 'test')
-    test_img_dataloader = DataLoader(test_img_dataset, 256)
 
     print('Encode images...')
     all_imgs_encoded = []
@@ -98,12 +98,19 @@ if __name__ == '__main__':
     criterion = Stage1Criterion()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     
+    # Stage 1 training
     for epoch in range(args.stage_one_epochs):
         train_stats = train_one_epoch(model, criterion, full_concept_emb,
-                                        train_img_dataloader, optimizer, args.device, epoch)
+                                      train_img_dataloader, optimizer, args.device, epoch)
         
         test_stats = evaluate(model, criterion, full_concept_emb, test_img_dataset, args.device)
 
     # TODO: Select the best model
+    
+    searcher = TopConceptSearcher(args.num_concepts)
+    top_concept_emb = searcher(model[0].weight, full_concept_emb)
+
+    # Stage 2 training
+    
     
     

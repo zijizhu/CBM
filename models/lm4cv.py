@@ -35,7 +35,7 @@ class Stage1Criterion(nn.Module):
 
         # Original implementation from https://github.com/wangyu-ustc/LM4CV/blob/main/utils/train_utils.py#L208
         # which is different to the one described in the paper.
-        weights_norm = torch.linalg.norm(weights, dim=-1, keepdim=True)
+        weights_norm = torch.linalg.matrix_norm(weights, dim=-1, keepdim=True)
         mu = torch.mean(full_concept_emb, dim=0)
         sigma_inv = torch.tensor(np.linalg.inv(torch.cov(full_concept_emb.T)))    # Using torch.inverse will have different result
         # Alternate implementation: sigma_inv = torch.inverse(torch.cov(distribution.T))
@@ -50,31 +50,22 @@ class Stage1Criterion(nn.Module):
         return xe_loss + torch.abs(mahalanobis_loss_scaled)
 
 
-class ImageEncoder(nn.Module):
-    @torch.no_grad()
-    def __init__(self, model) -> None:
-        self.model = model
-    
-    def forward(self, images):
-        encoded = self.model.encode_image(images)
-
-
 class TopConceptSearcher(nn.Module):
     def __init__(self, k) -> None:
         super().__init__()
         self.k = k
+        self.cos = nn.CosineSimilarity()
 
     @torch.no_grad()
     def forward(self, weights: torch.Tensor, full_concept_emb: torch.Tensor):
         # weights, full_concept_emb = weights.cpu(), full_concept_emb.cpu()
         selected_idxs = []
-        for row in weights:
-            row = row / torch.linalg.norm(row)
-            distances = torch.sum((full_concept_emb - row.reshape(1, -1)) ** 2, axis=1)
-            # sorted_idxes = np.argsort(distances)[::-1]
-            sorted_idxs = torch.argsort(distances)
+        for w_row in weights:
+            w_row = w_row / torch.linalg.vector_norm(w_row)
+            similarities = self.cos(w_row, full_concept_emb)
+            sorted_idxs = torch.argsort(similarities)
             count = 0
             while sorted_idxs[count] in selected_idxs:
                 count += 1
             selected_idxs.append(sorted_idxs[count])
-        selected_idxes = np.array(selected_idxes)
+        return full_concept_emb[selected_idxs]

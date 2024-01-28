@@ -5,13 +5,18 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms as T
 
+
 class CUBDataset(Dataset):
-    def __init__(self, dataset_dir: str, split: str='train', transforms=None) -> None:
+    def __init__(self, dataset_dir: str, encoded=False, split: str='train', transforms=None) -> None:
         super().__init__()
         if dataset_dir.endswith('CUB_200_2011'):
             self.dataset_dir = dataset_dir
         else:
             self.dataset_dir = os.path.join(dataset_dir, 'CUB_200_2011')
+        if encoded:
+            self.imgs_encoded = torch.load(os.path.join(dataset_dir, 'images_encoded.pt'))
+        else:
+            self.imgs_encoded = None
 
         with open(os.path.join(self.dataset_dir, 'classes.txt')) as fp:
             lines = fp.read().split('\n')
@@ -46,6 +51,9 @@ class CUBDataset(Dataset):
 
     def __getitem__(self, idx):
         fn, label = self.ann.iloc[idx]
-        img = Image.open(os.path.join(self.dataset_dir, 'images', fn))
-        img = self.transforms(img)
+        if self.imgs_encoded:
+            img = self.imgs_encoded[fn]
+        else:
+            img = Image.open(os.path.join(self.dataset_dir, 'images', fn))
+            img = self.transforms(img)
         return img, torch.tensor(label)
