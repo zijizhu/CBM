@@ -3,11 +3,12 @@ import clip
 import torch
 import argparse
 import numpy as np
-import pandas as pd
 from torch import nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
+from engine import train_one_epoch
+from models.lm4cv import Stage1Criterion
 from datasets.cub_dataset import CUBDataset
 
 
@@ -17,7 +18,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', default='cpu', type=str)
     parser.add_argument('--batch-size', default=4096, type=int)
     parser.add_argument('--seed', default=42, type=int)
-    parser.add_argument('--epochs', default=5000, type=int)
+    parser.add_argument('--stage-one-epochs', default=5000, type=int)
     parser.add_argument('--embedder-type', default='clip', choices=['clip', 'open-clip'], type=str)
     parser.add_argument('--embedder-variant', default='ViT-B/32', type=str)
     parser.add_argument('--img-emb-dir', default=None, type=str)
@@ -63,7 +64,7 @@ if __name__ == '__main__':
 
 
     # If not using the full matrix T
-    
+
     if args.num_concepts:
         print ("Number of concepts: ", args.num_concepts)
         output_dim = 200
@@ -87,6 +88,14 @@ if __name__ == '__main__':
         # output_dim = 200
         model = nn.Sequential(nn.Linear(full_concept_emb.shape[-1], args.num_concepts, bias=False),
                               nn.Linear(args.num_concepts, output_dim))
+        
+        criterion = Stage1Criterion()
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+        
+        for epoch in range(args.stage_one_epochs):
+            train_stats = train_one_epoch(model, criterion, full_concept_emb,
+                                          img_dataloader, optimizer, args.device, epoch)
+        
         
         
         

@@ -20,6 +20,8 @@ def _mean_squared_mahalanobis(x: torch.Tensor, mu: torch.Tensor, sigma_inv):
 
 
 class Stage1Criterion(nn.Module):
+    '''Cross-entropy loss with mahalanobis distance regularization
+    '''
     def __init__(self, regularization=True, division_power=3) -> None:
         super().__init__()
         self.xe = nn.CrossEntropyLoss()
@@ -55,3 +57,12 @@ class ImageEncoder(nn.Module):
     
     def forward(self, images):
         encoded = self.model.encode_image(images)
+
+
+class TopConceptSearcher(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @torch.no_grad()
+    def forward(self):
+        ...

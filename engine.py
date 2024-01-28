@@ -1,7 +1,7 @@
-import os
 import sys
 import math
 import torch
+from tqdm.auto import tqdm
 from typing import Iterable
 
 import utils
@@ -10,24 +10,30 @@ import utils
 def train_one_epoch(
         model: torch.nn.Module,
         criterion: torch.nn.Module,
+        concepts: torch.Tensor,
         data_loader: Iterable,
         optimizer: torch.optim.Optimizer,
         device: torch.device,
         epoch: int):
     model.train()
     criterion.train()
-    
-    metric_logger = utils.MetricLogger(delimiter="  ")
+
+    metric_logger = utils.MetricLogger(delimiter="\t")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     metric_logger.add_meter('train_acc', utils.SmoothedValue(window_size=1, fmt='{value:.4f}'))
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 10
 
-    for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
+    for samples, targets in tqdm(metric_logger.log_every(data_loader, print_freq, header),
+                                 total=len(data_loader)):
         samples = samples.to(device)
 
         outputs = model(samples)
-        loss = criterion(**dict(outputs=outputs, targets=targets))
+        
+        loss = criterion(outputs=outputs,
+                         targets=targets,
+                         weights=model[0].weight,
+                         full_concept_emb=concepts)
 
         acc = torch.sum(outputs.argmax(-1) == targets) / targets.size(0)
 
@@ -47,3 +53,22 @@ def train_one_epoch(
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+
+
+@torch.inference_mode()
+def evaluate(model, data_loader, device):
+    model.eval()
+    all_preds, all_targets = [], []
+    header = 'Test: '
+    metric_logger = utils.MetricLogger(delimiter="\t")
+    for samples, targets in tqdm(metric_logger.log_every(data_loader, 100, header),
+                                 total=len(data_loader)):
+        samples, targets = samples.to(device), targets.to(device)
+        outputs = model(samples).to('cpu')
+
+        preds = torch.argmax(outputs, dim=-1)
+        all_preds.append(preds)
+        all_targets.append(targets)
+    
+    all_preds, all_targets = torch.cat(all_preds), torch.cat(all_targets)
+    acc = (torch.sum(all_preds == all_targets) / all_targets.size(0) * 100)
