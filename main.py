@@ -7,9 +7,9 @@ from torch import nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
-from engine import train_one_epoch
 from models.lm4cv import Stage1Criterion
 from datasets.cub_dataset import CUBDataset
+from engine import train_one_epoch, evaluate
 
 
 if __name__ == '__main__':
@@ -22,6 +22,10 @@ if __name__ == '__main__':
     parser.add_argument('--embedder-type', default='clip', choices=['clip', 'open-clip'], type=str)
     parser.add_argument('--embedder-variant', default='ViT-B/32', type=str)
     parser.add_argument('--img-emb-dir', default=None, type=str)
+    parser.add_argument('--load-encoded', default=None, type=str,
+                        help='Load encoded image features instead of raw images.')
+
+
 
     parser.add_argument('--num-concepts', default=None, type=int)
 
@@ -64,43 +68,42 @@ if __name__ == '__main__':
 
 
     # If not using the full matrix T
+    if not args.num_concepts:
+        args.num_concepts = full_concept_emb.size(0)
+    print ("Number of concepts to search for: ", args.num_concepts)
+    output_dim = 200
 
-    if args.num_concepts:
-        print ("Number of concepts: ", args.num_concepts)
-        output_dim = 200
+    train_img_dataset = CUBDataset('data', 'train')
+    train_img_dataloader = DataLoader(train_img_dataset, 256)
+    test_img_dataset = CUBDataset('data', 'test')
+    test_img_dataloader = DataLoader(test_img_dataset, 256)
 
-        img_dataset = CUBDataset('data', 'train')
-        img_dataloader = DataLoader(img_dataset, 256)
+    print('Encode images...')
+    all_imgs_encoded = []
+    with torch.no_grad():
+        for i, batch in tqdm(enumerate(train_img_dataloader), total=len(train_img_dataloader)):
+            imgs, targets = batch
+            imgs = imgs.to(args.device)
+            targets = targets.to(args.device)
+            imgs_encoded = embedder.encode_image(imgs)
+            imgs_encoded /= torch.linalg.norm(imgs_encoded, dim=-1, keepdim=True)
+            all_imgs_encoded.append(imgs_encoded.to('cpu'))
+    all_imgs_encoded = torch.cat(all_imgs_encoded).numpy()
+    np.save('data/CUB_200_2011/images_encoded.npy', all_imgs_encoded)
 
-        print('Encode images...')
-        all_imgs_encoded = []
-        with torch.no_grad():
-            for i, batch in tqdm(enumerate(img_dataloader), total=len(img_dataloader)):
-                imgs, targets = batch
-                imgs = imgs.to(args.device)
-                targets = targets.to(args.device)
-                imgs_encoded = embedder.encode_image(imgs)
-                imgs_encoded /= torch.linalg.norm(imgs_encoded, dim=-1, keepdim=True)
-                all_imgs_encoded.append(imgs_encoded.to('cpu'))
-        all_imgs_encoded = torch.cat(all_imgs_encoded).numpy()
-        np.save('data/CUB_200_2011/images_encoded.npy', all_imgs_encoded)
+    # output_dim = 200
+    model = nn.Sequential(nn.Linear(full_concept_emb.shape[-1], args.num_concepts, bias=False),
+                            nn.Linear(args.num_concepts, output_dim))
+    
+    criterion = Stage1Criterion()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    
+    for epoch in range(args.stage_one_epochs):
+        train_stats = train_one_epoch(model, criterion, full_concept_emb,
+                                        train_img_dataloader, optimizer, args.device, epoch)
+        
+        test_stats = evaluate(model, criterion, full_concept_emb, test_img_dataset, args.device)
 
-        # output_dim = 200
-        model = nn.Sequential(nn.Linear(full_concept_emb.shape[-1], args.num_concepts, bias=False),
-                              nn.Linear(args.num_concepts, output_dim))
-        
-        criterion = Stage1Criterion()
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-        
-        for epoch in range(args.stage_one_epochs):
-            train_stats = train_one_epoch(model, criterion, full_concept_emb,
-                                          img_dataloader, optimizer, args.device, epoch)
-        
-        
-        
-        
-    else:
-        raise NotImplementedError
-
+    # TODO: Select the best model
     
     

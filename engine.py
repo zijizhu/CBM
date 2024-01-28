@@ -56,9 +56,16 @@ def train_one_epoch(
 
 
 @torch.inference_mode()
-def evaluate(model, data_loader, device):
+def evaluate(
+        model: torch.nn.Module,
+        criterion: torch.nn.Module,
+        concepts: torch.Tensor,
+        data_loader: Iterable,
+        device: torch.device):
     model.eval()
+    criterion.eval()
     all_preds, all_targets = [], []
+
     header = 'Test: '
     metric_logger = utils.MetricLogger(delimiter="\t")
     for samples, targets in tqdm(metric_logger.log_every(data_loader, 100, header),
@@ -66,9 +73,23 @@ def evaluate(model, data_loader, device):
         samples, targets = samples.to(device), targets.to(device)
         outputs = model(samples).to('cpu')
 
+        loss = criterion(outputs=outputs,
+                         targets=targets,
+                         weights=model[0].weight,
+                         full_concept_emb=concepts)
+
         preds = torch.argmax(outputs, dim=-1)
+        acc = (torch.sum(preds == targets) / all_targets.size(0) * 100)
+
+        metric_logger.update(loss=loss)
+        metric_logger.update(test_acc=acc)
+    
         all_preds.append(preds)
         all_targets.append(targets)
+
+    # all_preds, all_targets = torch.cat(all_preds), torch.cat(all_targets)
+    # acc = (torch.sum(all_preds == all_targets) / all_targets.size(0) * 100)
     
-    all_preds, all_targets = torch.cat(all_preds), torch.cat(all_targets)
-    acc = (torch.sum(all_preds == all_targets) / all_targets.size(0) * 100)
+    metric_logger.synchronize_between_processes()
+    print("Averaged stats:", metric_logger)
+    return {k: meter.global_avg for k, meter in metric_logger.meters.items()}

@@ -60,9 +60,21 @@ class ImageEncoder(nn.Module):
 
 
 class TopConceptSearcher(nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, k) -> None:
         super().__init__()
+        self.k = k
 
     @torch.no_grad()
-    def forward(self):
-        ...
+    def forward(self, weights: torch.Tensor, full_concept_emb: torch.Tensor):
+        # weights, full_concept_emb = weights.cpu(), full_concept_emb.cpu()
+        selected_idxs = []
+        for row in weights:
+            row = row / torch.linalg.norm(row)
+            distances = torch.sum((full_concept_emb - row.reshape(1, -1)) ** 2, axis=1)
+            # sorted_idxes = np.argsort(distances)[::-1]
+            sorted_idxs = torch.argsort(distances)
+            count = 0
+            while sorted_idxs[count] in selected_idxs:
+                count += 1
+            selected_idxs.append(sorted_idxs[count])
+        selected_idxes = np.array(selected_idxes)
