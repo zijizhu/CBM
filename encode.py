@@ -9,11 +9,12 @@ from torch.utils.data import DataLoader
 
 from datasets.cub_dataset import CUBDataset
 
-dataset2clip_prompt_prefix = {}
+
+dataset2clip_prompt_prefix = {'CUB_200_2011': 'The bird has '}
 
 
 @torch.inference_mode()
-def encode_concepts(model, raw_concepts, output_dir, batch_size, rescale=True):
+def encode_concepts(model, raw_concepts, prompt_prefix, output_dir, batch_size, rescale=True):
     all_encoded = []   # Matrix T
 
     prompt_prefix = 'The bird has '
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', default='cpu', choices=['cpu', 'cuda'], type=str)
     parser.add_argument('--image-batch-size', default=128, type=int)
     parser.add_argument('--concept-batch-size', default=128, type=int)
-    parser.add_argument('--dataset-dir', default='CUB_200_2011', type=str)
+    parser.add_argument('--dataset-dir', type=str)
     parser.add_argument('--concept-dir', type=str)
     parser.add_argument('--seed', default=42, type=int)
 
@@ -88,7 +89,8 @@ if __name__ == '__main__':
 
     # Encode Concepts
     print('Encoding concepts...')
-
+    encode_concepts(encoder, raw_concepts, dataset2clip_prompt_prefix[os.path.basename(args.dataset_dir)],
+                    args.dataset_dir, args.concept_batch_size)
 
     # Encode Images
     print('Encoding training set images...')
