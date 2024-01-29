@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
     # Encode Concepts
     print('Encoding concepts...')
-    encode_concepts(encoder, raw_concepts, dataset2clip_prompt_prefix[os.path.basename(args.dataset_dir)],
+    encode_concepts(encoder, raw_concepts, dataset2clip_prompt_prefix[os.path.basename(os.path.normpath(args.dataset_dir))],
                     args.dataset_dir, args.concept_batch_size)
 
     # Encode Images
