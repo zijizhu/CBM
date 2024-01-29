@@ -19,19 +19,14 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', default=4096, type=int)
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--stage-one-epochs', default=5000, type=int)
-    parser.add_argument('--embedder-type', default='clip', choices=['clip', 'open-clip'], type=str)
-    parser.add_argument('--embedder-variant', default='ViT-B/32', type=str)
-    parser.add_argument('--img-emb-dir', default=None, type=str)
+    parser.add_argument('--data-dir', default='data', type=str)
     parser.add_argument('--load-encoded', default=None, type=str,
                         help='Load encoded image features instead of raw images.')
-
-
 
     parser.add_argument('--num-concepts', default=None, type=int)
 
     args = parser.parse_args()
     print(args)
-
 
     # Set seeds
     torch.manual_seed(args.seed)

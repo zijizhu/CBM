@@ -9,10 +9,7 @@ from torchvision import transforms as T
 class CUBDataset(Dataset):
     def __init__(self, dataset_dir: str, encoded=False, split: str='train', transforms=None) -> None:
         super().__init__()
-        if dataset_dir.endswith('CUB_200_2011'):
-            self.dataset_dir = dataset_dir
-        else:
-            self.dataset_dir = os.path.join(dataset_dir, 'CUB_200_2011')
+        self.dataset_dir = dataset_dir
         if encoded:
             self.imgs_encoded = torch.load(os.path.join(dataset_dir, 'images_encoded.pt'))
         else:
@@ -56,4 +53,4 @@ class CUBDataset(Dataset):
         else:
             img = Image.open(os.path.join(self.dataset_dir, 'images', fn))
             img = self.transforms(img)
-        return img, torch.tensor(label)
+        return fn, img, torch.tensor(label)

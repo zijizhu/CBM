@@ -1,3 +1,6 @@
+'''
+Copied from: https://github.com/pytorch/vision/blob/main/references/detection/utils.py
+'''
 import os
 import time
 import torch
