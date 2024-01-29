@@ -33,12 +33,12 @@ def encode_concepts(model, raw_concepts, prompt_prefix, output_dir, batch_size, 
     
 
 @torch.inference_mode()
-def encode_images(model, preprocessor, data_loader, split, output_dir, rescale=True, device='cpu'):
+def encode_images(model, data_loader, split, output_dir, rescale=True, device='cpu'):
     all_encoded = []
     all_filenames = []
     for filenames, imgs, _ in tqdm(data_loader):
-        preprocessed = preprocessor(imgs).to(device)
-        encoded = model.encode_image(preprocessed)
+        imgs = imgs.to(device)
+        encoded = model.encode_image(imgs)
         all_encoded.append(encoded)
         all_filenames += filenames
 
@@ -80,8 +80,8 @@ if __name__ == '__main__':
     
     # Load data
     raw_concepts = open(args.concept_dir, 'r').read().strip().split("\n")
-    train_image_dataset = CUBDataset(args.dataset_dir, encoded=False, split='train')
-    test_image_dataset = CUBDataset(args.dataset_dir, encoded=False, split='test')
+    train_image_dataset = CUBDataset(args.dataset_dir, encoded=False, split='train', transforms=preprocessor)
+    test_image_dataset = CUBDataset(args.dataset_dir, encoded=False, split='test', transforms=preprocessor)
     train_data_loader = DataLoader(train_image_dataset, batch_size=args.image_batch_size,
                                    shuffle=False, num_workers=8)
     test_data_loader = DataLoader(test_image_dataset, batch_size=args.image_batch_size,
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
     # Encode Images
     print('Encoding training set images...')
-    encode_images(encoder, preprocessor, train_data_loader, 'train', args.dataset_dir, device=args.device)
+    encode_images(encoder, train_data_loader, 'train', args.dataset_dir, device=args.device)
 
     print('Encoding test set images...')
-    encode_images(encoder, preprocessor, test_data_loader, 'test', args.dataset_dir, device=args.device)
+    encode_images(encoder, test_data_loader, 'test', args.dataset_dir, device=args.device)
