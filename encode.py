@@ -14,14 +14,14 @@ dataset2clip_prompt_prefix = {'CUB_200_2011': 'The bird has '}
 
 
 @torch.inference_mode()
-def encode_concepts(model, raw_concepts, prompt_prefix, output_dir, batch_size, rescale=True):
+def encode_concepts(model, raw_concepts, prompt_prefix, output_dir, batch_size, rescale=True, device='cpu'):
     all_encoded = []   # Matrix T
 
     prompt_prefix = 'The bird has '
     num_batches = len(raw_concepts) // batch_size + 1
     for i in range(num_batches):
         batch_concepts = raw_concepts[i * batch_size: (i + 1) * batch_size]
-        batch_concepts_token = clip.tokenize([prompt_prefix + attr for attr in batch_concepts])
+        batch_concepts_token = clip.tokenize([prompt_prefix + attr for attr in batch_concepts]).to(device)
         all_encoded.append(model.encode_text(batch_concepts_token))
 
     all_encoded = torch.cat(all_encoded).cpu()
@@ -33,11 +33,11 @@ def encode_concepts(model, raw_concepts, prompt_prefix, output_dir, batch_size, 
     
 
 @torch.inference_mode()
-def encode_images(model, preprocessor, data_loader, split, output_dir, rescale=True):
+def encode_images(model, preprocessor, data_loader, split, output_dir, rescale=True, device='cpu'):
     all_encoded = []
     all_filenames = []
     for filenames, imgs, _ in tqdm(data_loader):
-        preprocessed = preprocessor(imgs)
+        preprocessed = preprocessor(imgs).to(device)
         encoded = model.encode_image(preprocessed)
         all_encoded.append(encoded)
         all_filenames += filenames
@@ -90,11 +90,11 @@ if __name__ == '__main__':
     # Encode Concepts
     print('Encoding concepts...')
     encode_concepts(encoder, raw_concepts, dataset2clip_prompt_prefix[os.path.basename(os.path.normpath(args.dataset_dir))],
-                    args.dataset_dir, args.concept_batch_size)
+                    args.dataset_dir, args.concept_batch_size, device=args.device)
 
     # Encode Images
     print('Encoding training set images...')
-    encode_images(encoder, preprocessor, train_data_loader, 'train', args.dataset_dir)
+    encode_images(encoder, preprocessor, train_data_loader, 'train', args.dataset_dir, device=args.device)
 
     print('Encoding test set images...')
-    encode_images(encoder, preprocessor, test_data_loader, 'test', args.dataset_dir)
+    encode_images(encoder, preprocessor, test_data_loader, 'test', args.dataset_dir, device=args.device)
