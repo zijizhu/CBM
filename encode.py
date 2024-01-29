@@ -27,7 +27,7 @@ def encode_concepts(model, raw_concepts, prompt_prefix, output_dir, batch_size, 
     all_encoded = torch.cat(all_encoded).cpu()
     # Rescale each row to a unit vector
     if rescale:
-        all_encoded /= torch.linalg.matrix_norm(all_encoded, dim=-1, keepdim=True)   # Matrix T, Tensor[N, D]
+        all_encoded /= torch.linalg.vector_norm(all_encoded, dim=-1, keepdim=True)   # Matrix T, Tensor[N, D]
 
     torch.save(all_encoded, os.path.join(output_dir, 'concepts_encoded.pt'))
     
@@ -44,7 +44,7 @@ def encode_images(model, preprocessor, data_loader, split, output_dir, rescale=T
 
     all_encoded = torch.cat(all_encoded).cpu()
     if rescale:
-        all_encoded /= torch.linalg.matrix_norm(all_encoded, dim=-1, keepdim=True)
+        all_encoded /= torch.linalg.vector_norm(all_encoded, dim=-1, keepdim=True)
 
     torch.save(all_encoded, os.path.join(output_dir, f'{split}_images_encoded.pt'))
     torch.save(all_filenames, os.path.join(output_dir, f'{split}_filename2idx.pt'))
