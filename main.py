@@ -59,7 +59,7 @@ if __name__ == '__main__':
         full_concept_emb.append(embedder.encode_text(batch_concept_emb).detach().cpu())
 
     full_concept_emb = torch.concat(full_concept_emb).float()
-    full_concept_emb = full_concept_emb / full_concept_emb.norm(dim=-1, keepdim=True)   # Matrix T, Tensor[N, D]
+    full_concept_emb /= torch.linalg.matrix_norm(full_concept_emb, dim=-1, keepdim=True)   # Matrix T, Tensor[N, D]
 
     train_img_dataset = CUBDataset('data', 'train')
     train_img_dataloader = DataLoader(train_img_dataset, 256)
