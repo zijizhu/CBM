@@ -33,9 +33,9 @@ if __name__ == '__main__':
         torch.backends.cudnn.deterministic = True
     
     # Load dataset
-    train_img_dataset = CUBDataset('data', 'train', encoded=True)
+    train_img_dataset = CUBDataset(args.dataset_dir, 'train', encoded=True)
     train_img_dataloader = DataLoader(train_img_dataset, 256)
-    test_img_dataset = CUBDataset('data', 'test', encoded=True)
+    test_img_dataset = CUBDataset(args.dataset_dir, 'test', encoded=True)
     test_img_dataloader = DataLoader(test_img_dataset, 256)
 
     concepts_encoded = torch.load(os.path.join(args.dataset_dir, 'concepts_encoded.pt'))
