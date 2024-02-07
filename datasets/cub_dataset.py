@@ -11,7 +11,7 @@ class CUBDataset(Dataset):
         super().__init__()
         self.dataset_dir = dataset_dir
         if encoded:
-            self.imgs_encoded = torch.load(os.path.join(dataset_dir, f'{split}_images_encoded.pt'))
+            self.imgs_encoded = torch.load(os.path.join(dataset_dir, f'{split}_images_encoded.pt')).to(torch.float32)
         else:
             self.imgs_encoded = None
 

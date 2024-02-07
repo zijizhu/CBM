@@ -38,7 +38,7 @@ if __name__ == '__main__':
     test_img_dataset = CUBDataset(args.dataset_dir, encoded=True, split='test')
     test_img_dataloader = DataLoader(test_img_dataset, 256)
 
-    concepts_encoded = torch.load(os.path.join(args.dataset_dir, 'concepts_encoded.pt'))
+    concepts_encoded = torch.load(os.path.join(args.dataset_dir, 'concepts_encoded.pt')).to(torch.float32)
 
     # Number of concepts and classes
     if not args.num_concepts:
@@ -66,7 +66,6 @@ if __name__ == '__main__':
     
     # Select top concepts
     top_concepts_encoded, selected_idxs = searcher(model[0].weight, concepts_encoded)
-
 
     # Stage 2 training
     print('Stage 2 training:')
