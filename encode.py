@@ -24,7 +24,7 @@ def encode_concepts(model, raw_concepts, prompt_prefix, output_dir, batch_size, 
         batch_concepts_token = clip.tokenize([prompt_prefix + attr for attr in batch_concepts]).to(device)
         all_encoded.append(model.encode_text(batch_concepts_token))
 
-    all_encoded = torch.cat(all_encoded).cpu()
+    all_encoded = torch.cat(all_encoded).detach().cpu()
     # Rescale each row to a unit vector
     if rescale:
         all_encoded /= torch.linalg.vector_norm(all_encoded, dim=-1, keepdim=True)   # Matrix T, Tensor[N, D]
@@ -42,7 +42,7 @@ def encode_images(model, data_loader, split, output_dir, rescale=True, device='c
         all_encoded.append(encoded)
         all_filenames += filenames
 
-    all_encoded = torch.cat(all_encoded).cpu()
+    all_encoded = torch.cat(all_encoded).detach().cpu()
     if rescale:
         all_encoded /= torch.linalg.vector_norm(all_encoded, dim=-1, keepdim=True)
 

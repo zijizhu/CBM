@@ -9,21 +9,6 @@ from typing import Iterable
 import utils
 
 
-def encode_concetps():
-    ...
-
-
-def encode_images(data_loader: Iterable, encoder, output_dir: str, device: torch.device):
-    all_imgs_encoded = []
-    for imgs, _ in tqdm(data_loader):
-        imgs.to(device)
-        imgs_encoded = encoder.encode_image(imgs)
-        imgs_encoded /= torch.linalg.norm(imgs_encoded, dim=-1, keepdim=True)
-        all_imgs_encoded.append(imgs_encoded.cpu())
-    all_imgs_encoded = torch.cat(all_imgs_encoded)
-    torch.save(all_imgs_encoded, output_dir)
-
-
 def train_one_epoch(
         model: torch.nn.Module,
         criterion: torch.nn.Module,

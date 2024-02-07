@@ -19,6 +19,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', default=4096, type=int)
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--stage-one-epochs', default=5000, type=int)
+    parser.add_argument('--stage-two-epochs', default=5000, type=int)
     parser.add_argument('--dataset-dir', type=str)
 
     parser.add_argument('--num-concepts', default=None, type=int)
@@ -34,9 +35,9 @@ if __name__ == '__main__':
         torch.backends.cudnn.deterministic = True
     
     # Load dataset
-    train_img_dataset = CUBDataset('data', 'train')
+    train_img_dataset = CUBDataset('data', 'train', encoded=True)
     train_img_dataloader = DataLoader(train_img_dataset, 256)
-    test_img_dataset = CUBDataset('data', 'test')
+    test_img_dataset = CUBDataset('data', 'test', encoded=True)
     test_img_dataloader = DataLoader(test_img_dataset, 256)
 
     concepts_encoded = torch.load(os.path.join(args.dataset_dir, 'concepts_encoded.pt'))
@@ -68,8 +69,14 @@ if __name__ == '__main__':
     # Select top concepts
     top_concepts_encoded, selected_idxs = searcher(model[0].weight, concepts_encoded)
 
+    model_stage2 = ...
+
     # Stage 2 training
     print('Stage 2 training:')
-    
-    
+    model[0].weight.data = top_concepts_encoded * model[0].weight.data
+    for epoch in range(args.stage_one_epochs):
+        train_stats = train_one_epoch(model_stage2, criterion, concepts_encoded,
+                                      train_img_dataloader, optimizer, args.device, epoch)
+        
+        test_stats = evaluate(model_stage2, criterion, concepts_encoded, test_img_dataset, args.device)
     
