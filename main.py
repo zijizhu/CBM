@@ -60,7 +60,7 @@ if __name__ == '__main__':
         train_stats = train_one_epoch(model, criterion, concepts_encoded,
                                       train_img_dataloader, optimizer, args.device, epoch)
         
-        test_stats = evaluate(model, criterion, concepts_encoded, test_img_dataset, args.device)
+        test_stats = evaluate(model, criterion, test_img_dataloader, args.device)
 
     # TODO: Select the best model
     
@@ -78,4 +78,4 @@ if __name__ == '__main__':
         train_stats = train_one_epoch(model, criterion, None,
                                       train_img_dataloader, optimizer, args.device, epoch)
         
-        test_stats = evaluate(model, criterion, concepts_encoded, test_img_dataset, args.device)
+        test_stats = evaluate(model, criterion, test_img_dataloader, args.device)

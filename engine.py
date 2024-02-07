@@ -24,7 +24,7 @@ def train_one_epoch(
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     metric_logger.add_meter('train_acc', utils.SmoothedValue(window_size=1, fmt='{value:.4f}'))
     header = 'Epoch: [{}]'.format(epoch)
-    print_freq = 1000
+    print_freq = 5
 
     for _, samples, targets in metric_logger.log_every(data_loader, print_freq, header):
         samples = samples.to(device)
@@ -39,7 +39,7 @@ def train_one_epoch(
                             concepts_encoded=concepts)
         else:
             loss = criterion(outputs=outputs, targets=targets)
-                            
+
         acc = torch.sum(outputs.argmax(-1) == targets) / targets.size(0)
 
         if not math.isfinite(loss):
