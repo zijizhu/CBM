@@ -28,6 +28,7 @@ def train_one_epoch(
 
     for _, samples, targets in metric_logger.log_every(data_loader, print_freq, header):
         samples = samples.to(device)
+        targets = targets.to(device)
         outputs = model(samples)
         
         if concepts is not None:
