@@ -37,7 +37,7 @@ class Stage1Criterion(nn.Module):
         # which is different to the one described in the paper.
         weights_norm = torch.linalg.vector_norm(weights, dim=-1)
         mu = torch.mean(concepts_encoded, dim=0)
-        sigma_inv = torch.tensor(np.linalg.inv(torch.cov(concepts_encoded.T))).to(outputs.device)    # Using torch.inverse will have different result
+        sigma_inv = torch.tensor(torch.inverse(torch.cov(concepts_encoded.T))).to(outputs.device)    # Using torch.inverse will have different result to np.linalg.inv
         # Alternate implementation: sigma_inv = torch.inverse(torch.cov(distribution.T))
 
         mean_distance = torch.stack([_mean_squared_mahalanobis(concept, mu, sigma_inv)
