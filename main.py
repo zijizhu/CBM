@@ -1,10 +1,8 @@
 import os
-import clip
 import torch
 import argparse
 import numpy as np
 from torch import nn
-from tqdm import tqdm
 from torch.utils.data import DataLoader
 
 from datasets.cub_dataset import CUBDataset
@@ -69,14 +67,16 @@ if __name__ == '__main__':
     # Select top concepts
     top_concepts_encoded, selected_idxs = searcher(model[0].weight, concepts_encoded)
 
-    model_stage2 = ...
 
     # Stage 2 training
     print('Stage 2 training:')
-    model[0].weight.data = top_concepts_encoded * model[0].weight.data
+    model[0].weight.data = top_concepts_encoded * torch.linalg.vector_norm(model[0].weight.data, dim=-1)
+    for param in model[0].parameters():
+        param.requires_grad = False
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
     for epoch in range(args.stage_one_epochs):
-        train_stats = train_one_epoch(model_stage2, criterion, concepts_encoded,
+        train_stats = train_one_epoch(model, criterion, concepts_encoded,
                                       train_img_dataloader, optimizer, args.device, epoch)
         
-        test_stats = evaluate(model_stage2, criterion, concepts_encoded, test_img_dataset, args.device)
-    
+        test_stats = evaluate(model, criterion, concepts_encoded, test_img_dataset, args.device)

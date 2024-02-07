@@ -17,26 +17,27 @@ def train_one_epoch(
         optimizer: torch.optim.Optimizer,
         device: torch.device,
         epoch: int):
-    model.train()
-    criterion.train()
+    model.to(device).train()
+    criterion.to(device).train()
 
     metric_logger = utils.MetricLogger(delimiter="\t")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     metric_logger.add_meter('train_acc', utils.SmoothedValue(window_size=1, fmt='{value:.4f}'))
     header = 'Epoch: [{}]'.format(epoch)
-    print_freq = 10
+    print_freq = 1000
 
-    for samples, targets in tqdm(metric_logger.log_every(data_loader, print_freq, header),
-                                 total=len(data_loader)):
+    for _, samples, targets in metric_logger.log_every(data_loader, print_freq, header):
         samples = samples.to(device)
-
         outputs = model(samples)
         
-        loss = criterion(outputs=outputs,
-                         targets=targets,
-                         weights=model[0].weight,
-                         full_concept_emb=concepts)
-
+        if concepts:
+            loss = criterion(outputs=outputs,
+                            targets=targets,
+                            weights=model[0].weight,
+                            full_concept_emb=concepts)
+        else:
+            loss = criterion(outputs=outputs, targets=targets)
+                            
         acc = torch.sum(outputs.argmax(-1) == targets) / targets.size(0)
 
         if not math.isfinite(loss):
@@ -61,7 +62,6 @@ def train_one_epoch(
 def evaluate(
         model: torch.nn.Module,
         criterion: torch.nn.Module,
-        concepts: torch.Tensor,
         data_loader: Iterable,
         device: torch.device):
     model.eval()
@@ -70,20 +70,13 @@ def evaluate(
 
     header = 'Test: '
     metric_logger = utils.MetricLogger(delimiter="\t")
-    for samples, targets in tqdm(metric_logger.log_every(data_loader, 100, header),
-                                 total=len(data_loader)):
+    for _, samples, targets in metric_logger.log_every(data_loader, 100, header):
         samples, targets = samples.to(device), targets.to(device)
-        outputs = model(samples).to('cpu')
-
-        loss = criterion(outputs=outputs,
-                         targets=targets,
-                         weights=model[0].weight,
-                         full_concept_emb=concepts)
+        outputs = model(samples)
 
         preds = torch.argmax(outputs, dim=-1)
         acc = (torch.sum(preds == targets) / all_targets.size(0) * 100)
 
-        metric_logger.update(loss=loss)
         metric_logger.update(test_acc=acc)
     
         all_preds.append(preds)
