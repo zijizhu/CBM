@@ -75,7 +75,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     for epoch in range(args.stage_one_epochs):
-        train_stats = train_one_epoch(model, criterion, concepts_encoded,
+        train_stats = train_one_epoch(model, criterion, None,
                                       train_img_dataloader, optimizer, args.device, epoch)
         
         test_stats = evaluate(model, criterion, concepts_encoded, test_img_dataset, args.device)
