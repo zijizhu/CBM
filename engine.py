@@ -34,7 +34,7 @@ def train_one_epoch(
             loss = criterion(outputs=outputs,
                             targets=targets,
                             weights=model[0].weight,
-                            full_concept_emb=concepts)
+                            concepts_encoded=concepts)
         else:
             loss = criterion(outputs=outputs, targets=targets)
                             
