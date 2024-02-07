@@ -1,4 +1,5 @@
 data/CUB_200_2011/*
 
+__pycache__
 .DS_Store
 *.pyc

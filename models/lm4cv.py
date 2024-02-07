@@ -28,7 +28,7 @@ class Stage1Criterion(nn.Module):
         self.regularization = regularization
         self.division_power = division_power
     
-    def forward(self, outputs: torch.Tensor, targets, weights, full_concept_emb):
+    def forward(self, outputs: torch.Tensor, targets, weights, concepts_encoded):
         xe_loss = self.xe(outputs, targets)
         if not self.regularization:
             return xe_loss
@@ -36,13 +36,13 @@ class Stage1Criterion(nn.Module):
         # Original implementation from https://github.com/wangyu-ustc/LM4CV/blob/main/utils/train_utils.py#L208
         # which is different to the one described in the paper.
         weights_norm = torch.linalg.matrix_norm(weights, dim=-1, keepdim=True)
-        mu = torch.mean(full_concept_emb, dim=0)
-        sigma_inv = torch.tensor(np.linalg.inv(torch.cov(full_concept_emb.T)))    # Using torch.inverse will have different result
+        mu = torch.mean(concepts_encoded, dim=0)
+        sigma_inv = torch.tensor(np.linalg.inv(torch.cov(concepts_encoded.T)))    # Using torch.inverse will have different result
         # Alternate implementation: sigma_inv = torch.inverse(torch.cov(distribution.T))
 
-        mean_distance = torch.stack([_mean_squared_mahalanobis(embed, mu, sigma_inv)
-                                     for embed
-                                     in full_concept_emb]).mean().to(outputs.device)
+        mean_distance = torch.stack([_mean_squared_mahalanobis(concept, mu, sigma_inv)
+                                     for concept
+                                     in concepts_encoded]).mean().to(outputs.device)
 
         mahalanobis_loss = _mean_squared_mahalanobis(weights / weights_norm, mu, sigma_inv)
         mahalanobis_loss_scaled = (mahalanobis_loss - mean_distance) / (mean_distance ** self.division_power)
@@ -57,15 +57,15 @@ class TopConceptSearcher(nn.Module):
         self.cos = nn.CosineSimilarity()
 
     @torch.no_grad()
-    def forward(self, weights: torch.Tensor, full_concept_emb: torch.Tensor):
-        # weights, full_concept_emb = weights.cpu(), full_concept_emb.cpu()
+    def forward(self, weights: torch.Tensor, concepts_encoded: torch.Tensor):
+        # weights, concepts_encoded = weights.cpu(), concepts_encoded.cpu()
         selected_idxs = []
         for w_row in weights:
             w_row = w_row / torch.linalg.vector_norm(w_row)
-            similarities = self.cos(w_row, full_concept_emb)
+            similarities = self.cos(w_row, concepts_encoded)
             sorted_idxs = torch.argsort(similarities)
             count = 0
             while sorted_idxs[count] in selected_idxs:
                 count += 1
             selected_idxs.append(sorted_idxs[count])
-        return full_concept_emb[selected_idxs]
+        return concepts_encoded[selected_idxs], selected_idxs
