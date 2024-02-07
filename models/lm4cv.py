@@ -35,7 +35,7 @@ class Stage1Criterion(nn.Module):
 
         # Original implementation from https://github.com/wangyu-ustc/LM4CV/blob/main/utils/train_utils.py#L208
         # which is different to the one described in the paper.
-        weights_norm = torch.linalg.vector_norm(weights, dim=-1)
+        weights_norm = torch.linalg.vector_norm(weights, dim=-1, keepdim=True)
         mu = torch.mean(concepts_encoded, dim=0)
         sigma_inv = torch.tensor(torch.inverse(torch.cov(concepts_encoded.T))).to(outputs.device)    # Using torch.inverse will have different result to np.linalg.inv
         # Alternate implementation: sigma_inv = torch.inverse(torch.cov(distribution.T))

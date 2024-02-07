@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     # Stage 2 training
     print('Stage 2 training:')
-    model[0].weight.data = top_concepts_encoded * torch.linalg.vector_norm(model[0].weight.data, dim=-1)
+    model[0].weight.data = top_concepts_encoded * torch.linalg.vector_norm(model[0].weight.data, dim=-1, keepdim=True)
     for param in model[0].parameters():
         param.requires_grad = False
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
