@@ -77,7 +77,7 @@ def evaluate(
         outputs = model(samples)
 
         preds = torch.argmax(outputs, dim=-1)
-        acc = (torch.sum(preds == targets) / all_targets.size(0) * 100)
+        acc = torch.sum(preds == targets) / targets.size(0)
 
         metric_logger.update(test_acc=acc)
     
