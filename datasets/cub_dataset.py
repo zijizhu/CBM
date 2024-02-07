@@ -49,7 +49,7 @@ class CUBDataset(Dataset):
     def __getitem__(self, idx):
         fn, label = self.ann.iloc[idx]
         if self.imgs_encoded is not None:
-            img = self.imgs_encoded[fn]
+            img = self.imgs_encoded[idx]
         else:
             img = Image.open(os.path.join(self.dataset_dir, 'images', fn))
             img = self.transforms(img)
