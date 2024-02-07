@@ -34,9 +34,9 @@ if __name__ == '__main__':
     
     # Load dataset
     train_img_dataset = CUBDataset(args.dataset_dir, encoded=True, split='train')
-    train_img_dataloader = DataLoader(train_img_dataset, 256)
+    train_img_dataloader = DataLoader(train_img_dataset, args.batch_size)
     test_img_dataset = CUBDataset(args.dataset_dir, encoded=True, split='test')
-    test_img_dataloader = DataLoader(test_img_dataset, 256)
+    test_img_dataloader = DataLoader(test_img_dataset, args.batch_size)
 
     concepts_encoded = torch.load(os.path.join(args.dataset_dir, 'concepts_encoded.pt')).to(torch.float32)
 
