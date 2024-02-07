@@ -32,6 +32,7 @@ def train_one_epoch(
         outputs = model(samples)
         
         if concepts is not None:
+            concepts = concepts.to(device)
             loss = criterion(outputs=outputs,
                             targets=targets,
                             weights=model[0].weight,
