@@ -65,7 +65,10 @@ if __name__ == '__main__':
     # TODO: Select the best model
     
     # Select top concepts
-    top_concepts_encoded, selected_idxs = searcher(model[0].weight, concepts_encoded)
+    if args.num_concepts is not None:
+        top_concepts_encoded, selected_idxs = searcher(model[0].weight, concepts_encoded)
+    else:
+        top_concepts_encoded = model[0].weight
 
     # Stage 2 training
     print('Stage 2 training:')

@@ -54,11 +54,12 @@ class TopConceptSearcher(nn.Module):
     def __init__(self, k) -> None:
         super().__init__()
         self.k = k
-        self.cos = nn.CosineSimilarity()
+        self.cos = nn.CosineSimilarity(dim=-1)
 
     @torch.no_grad()
     def forward(self, weights: torch.Tensor, concepts_encoded: torch.Tensor):
         # weights, concepts_encoded = weights.cpu(), concepts_encoded.cpu()
+        concepts_encoded = concepts_encoded.to(weights.device)
         selected_idxs = []
         for w_row in weights:
             w_row = w_row / torch.linalg.vector_norm(w_row)
