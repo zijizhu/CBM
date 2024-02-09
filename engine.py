@@ -34,11 +34,11 @@ def train_one_epoch(
         if concepts is not None:
             concepts = concepts.to(device)
             loss = criterion(outputs=outputs,
-                            targets=targets,
-                            weights=model[0].weight,
-                            concepts_encoded=concepts)
+                             targets=targets,
+                             weights=model[0].weight,
+                             concepts_encoded=concepts)
         else:
-            loss = criterion(outputs=outputs, targets=targets)
+            loss = criterion(outputs, targets)
 
         acc = torch.sum(outputs.argmax(-1) == targets) / targets.size(0)
 
