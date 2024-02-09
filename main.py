@@ -19,6 +19,7 @@ if __name__ == '__main__':
     parser.add_argument('--stage-one-epochs', default=5000, type=int)
     parser.add_argument('--stage-two-epochs', default=5000, type=int)
     parser.add_argument('--dataset-dir', type=str)
+    parser.add_argument('--early-stop', action='store_true')
 
     parser.add_argument('--no-reg', action='store_true', help='Train stage 1 without regularization')
     parser.add_argument('--num-concepts', default=None, type=int)
