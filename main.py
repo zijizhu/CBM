@@ -69,8 +69,8 @@ if __name__ == '__main__':
         if epoch % 10 == 0:
             if args.early_stop and best_acc == epoch_test_acc:
                 break
+            print('Test Accuracy: ', epoch_test_acc)
             best_acc = epoch_test_acc
-            
 
     # TODO: Select the best model
     
@@ -88,8 +88,15 @@ if __name__ == '__main__':
         param.requires_grad = False
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
+    best_acc = 0
     for epoch in range(args.stage_two_epochs):
         train_stats = train_one_epoch(model, criterion, None,
                                       train_img_dataloader, optimizer, args.device, epoch)
         
         test_stats = evaluate(model, criterion, test_img_dataloader, args.device)
+
+        if epoch % 10 == 0:
+            if args.early_stop and best_acc == epoch_test_acc:
+                break
+            print('Test Accuracy: ', epoch_test_acc)
+            best_acc = epoch_test_acc
