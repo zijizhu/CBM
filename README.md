@@ -7,5 +7,5 @@ python encode.py --device cuda --dataset-dir data/CUB_200_2011/ --concept-dir da
 
 To train and test a model (e.g. CUB, 100 epochs):
 ```bash
-python main.py --device cuda --dataset-dir data/CUB_200_2011/ --stage-one-epoch 100
+python main.py --device cuda --dataset-dir data/CUB_200_2011/ --num-concepts 200 --stage-one-epochs 100 --stage-two-epochs 100
 ```

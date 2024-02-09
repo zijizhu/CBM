@@ -20,6 +20,7 @@ if __name__ == '__main__':
     parser.add_argument('--stage-two-epochs', default=5000, type=int)
     parser.add_argument('--dataset-dir', type=str)
 
+    parser.add_argument('--no-reg', action='store_true', help='Train stage 1 without regularization')
     parser.add_argument('--num-concepts', default=None, type=int)
 
     args = parser.parse_args()
@@ -51,6 +52,9 @@ if __name__ == '__main__':
                           nn.Linear(args.num_concepts, num_classes))
     
     criterion = Stage1Criterion()
+    if args.no_reg:
+        criterion = nn.CrossEntropyLoss()
+
     searcher = TopConceptSearcher(args.num_concepts)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     
@@ -70,14 +74,15 @@ if __name__ == '__main__':
     else:
         top_concepts_encoded = model[0].weight
 
-    # Stage 2 training
+    # Stage 2 training, replace and freeze concept layer, redefine loss
     print('Stage 2 training:')
+    criterion = nn.CrossEntropyLoss()
     model[0].weight.data = top_concepts_encoded * torch.linalg.vector_norm(model[0].weight.data, dim=-1, keepdim=True)
     for param in model[0].parameters():
         param.requires_grad = False
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-    for epoch in range(args.stage_one_epochs):
+    for epoch in range(args.stage_two_epochs):
         train_stats = train_one_epoch(model, criterion, None,
                                       train_img_dataloader, optimizer, args.device, epoch)
         

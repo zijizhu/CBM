@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from tqdm import tqdm
 from torch import nn
 
 
@@ -61,7 +62,7 @@ class TopConceptSearcher(nn.Module):
         # weights, concepts_encoded = weights.cpu(), concepts_encoded.cpu()
         concepts_encoded = concepts_encoded.to(weights.device)
         selected_idxs = []
-        for w_row in weights:
+        for w_row in tqdm(weights):
             w_row = w_row / torch.linalg.vector_norm(w_row)
             similarities = self.cos(w_row, concepts_encoded)
             sorted_idxs = torch.argsort(similarities)

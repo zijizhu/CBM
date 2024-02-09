@@ -27,8 +27,8 @@ def train_one_epoch(
     print_freq = 1
 
     for _, samples, targets in metric_logger.log_every(data_loader, print_freq, header):
-        samples = samples.to(device)
-        targets = targets.to(device)
+        samples, targets = samples.to(device), targets.to(device)
+
         outputs = model(samples)
         
         if concepts is not None:
@@ -68,7 +68,6 @@ def evaluate(
         device: torch.device):
     model.eval()
     criterion.eval()
-    all_preds, all_targets = [], []
 
     header = 'Test: '
     metric_logger = utils.MetricLogger(delimiter="\t")
@@ -80,13 +79,7 @@ def evaluate(
         acc = torch.sum(preds == targets) / targets.size(0)
 
         metric_logger.update(test_acc=acc)
-    
-        all_preds.append(preds)
-        all_targets.append(targets)
 
-    # all_preds, all_targets = torch.cat(all_preds), torch.cat(all_targets)
-    # acc = (torch.sum(all_preds == all_targets) / all_targets.size(0) * 100)
-    
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
