@@ -87,6 +87,7 @@ def evaluate(
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
 
-    all_preds, all_tgts = torch.stack(all_preds), torch.stack(all_tgts)
+    all_preds, all_tgts = torch.cat(all_preds), torch.cat(all_tgts)
     epoch_acc = (torch.sum(all_preds == all_tgts) / len(all_preds) * 100)
+
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}, epoch_acc

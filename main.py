@@ -66,7 +66,7 @@ if __name__ == '__main__':
                                       train_img_dataloader, optimizer, args.device, epoch)
         
         test_stats, epoch_test_acc = evaluate(model, criterion, test_img_dataloader, args.device)
-        if epoch % 10 == 0:
+        if epoch > 0 and epoch % 10 == 0:
             if args.early_stop and best_acc == epoch_test_acc:
                 break
             print('Test Accuracy: ', epoch_test_acc)
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         
         test_stats = evaluate(model, criterion, test_img_dataloader, args.device)
 
-        if epoch % 10 == 0:
+        if epoch > 0 and epoch % 10 == 0:
             if args.early_stop and best_acc == epoch_test_acc:
                 break
             print('Test Accuracy: ', epoch_test_acc)
