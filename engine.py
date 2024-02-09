@@ -69,6 +69,7 @@ def evaluate(
     model.eval()
     criterion.eval()
 
+    all_preds, all_tgts = [], []
     header = 'Test: '
     metric_logger = utils.MetricLogger(delimiter="\t")
     for _, samples, targets in metric_logger.log_every(data_loader, 100, header):
@@ -78,8 +79,14 @@ def evaluate(
         preds = torch.argmax(outputs, dim=-1)
         acc = torch.sum(preds == targets) / targets.size(0)
 
+        all_preds.append(preds)
+        all_tgts.append(targets)
+
         metric_logger.update(test_acc=acc)
 
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
-    return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+
+    all_preds, all_tgts = torch.stack(all_preds), torch.stack(all_tgts)
+    epoch_acc = (torch.sum(all_preds == all_tgts) / len(all_preds) * 100)
+    return {k: meter.global_avg for k, meter in metric_logger.meters.items()}, epoch_acc

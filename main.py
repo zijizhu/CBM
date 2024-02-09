@@ -60,11 +60,17 @@ if __name__ == '__main__':
     
     # Stage 1 training
     print('Stage 1 training:')
+    best_acc = 0
     for epoch in range(args.stage_one_epochs):
         train_stats = train_one_epoch(model, criterion, concepts_encoded,
                                       train_img_dataloader, optimizer, args.device, epoch)
         
-        test_stats = evaluate(model, criterion, test_img_dataloader, args.device)
+        test_stats, epoch_test_acc = evaluate(model, criterion, test_img_dataloader, args.device)
+        if epoch % 10 == 0:
+            if args.early_stop and best_acc == epoch_test_acc:
+                break
+            best_acc = epoch_test_acc
+            
 
     # TODO: Select the best model
     
